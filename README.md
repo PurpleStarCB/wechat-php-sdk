@@ -1,10 +1,19 @@
 wechat-php-sdk
 ==============
 
+本SDK改自 https://github.com/dodgepudding/wechat-php-sdk.
+修改了wechat.class.php, 使其支持微信之门(简称wgate)平台接口(http://www.weixingate.com).
+内部封装了对微信之门 wgate-php-sdk 的调用.
+
+所有接口的调用, 除了oAuth授权接口外, 均支持微信之门接口.
+
+企业号SDK qywechat.class.php不支持微信之门wgate-php-sdk.
+
+
+
+
 微信公众平台php开发包,细化各项接口操作,支持链式调用,欢迎Fork此项目  
 weixin developer SDK.
-项目地址：**https://github.com/dodgepudding/wechat-php-sdk**  
-项目blog：**http://binsee.github.io/wechat-php-sdk**  
 
 ## 使用详解
 使用前需先打开微信帐号的开发模式，详细步骤请查看微信公众平台接口使用说明：  
@@ -22,9 +31,6 @@ https://mp.weixin.qq.com/cgi-bin/readtemplate?t=business/course2_tmpl&lang=zh_CN
 > **[qywechat.class.php 企业号API类库](#user-content-6-qywechatclassphp-企业号api类库)**  
 > **[errCode.php|qyerrCode.php 全局返回码类](#user-content-5-errcodephp-全局返回码类)**  
 > **[old_version/wechatpay.class.php 旧版微信支付V2接口类库](#user-content-7-wechatpayclassphp-旧版微信支付V2接口类库)**  
-> ~~**[old_version/wechatext.class.php 非官方扩展API(停止维护)](#user-content-2-wechatextclassphp-非官方扩展api)**~~  
-> ~~**[old_version/wechatauth.class.php 授权登陆(停止维护)](#user-content-3-wechatauthclassphp-授权登陆)**~~  
-> ~~**[old_version/wechat.js 内嵌JS(已废弃)](#user-content-4-wechatjs-内嵌js)**~~  
 > **[为开发框架进行适配](#user-content-为开发框架进行适配)**  
 > **[调用示例](#user-content-调用示例)**  
 
@@ -60,9 +66,11 @@ https://mp.weixin.qq.com/cgi-bin/readtemplate?t=business/course2_tmpl&lang=zh_CN
 
 
 ### 初始化动作 
+
+原生微信方式
 ```php
  $options = array(
-	'token'=>'tokenaccesskey', //填写你设定的key
+    'token'=>'tokenaccesskey', //填写你设定的key
 	'encodingaeskey'=>'encodingaeskey', //填写加密用的EncodingAESKey
 	'appid'=>'wxdk1234567890', //填写高级调用功能的app id, 请在微信开发模式后台查询
 	'appsecret'=>'xxxxxxxxxxxxxxxxxxx' //填写高级调用功能的密钥
@@ -71,7 +79,23 @@ https://mp.weixin.qq.com/cgi-bin/readtemplate?t=business/course2_tmpl&lang=zh_CN
  //TODO：调用$weObj各实例方法
 ```
 
+微信之门接口方式
+```php
+  $options = array(
+    "key"=>$wgate_key, // 微信之门中生成的KEY
+    "secret"=>$wgate_secret, // 相应的secret
+    "appid"=>$appid,  // 公众号的APPID
+    "weixin_account_id"=>$wgate_weixin_account_id // 微信之门中公众号对应的ID
+  );
+  $wgate = new WGate($options);
+  $weObj = new Wechat(["wgate"=>$wgate]); // 将wgate对象传递给wechat
+
+```
+
 ### 被动接口方法:   
+
+被动接口用于接收从微信发送过来的消息, 并做回复. 对于接入了微信之门的公众号来说, 接收消息与原生方式完全一样. 只需改动相应的TOKEN, AESKEY等即可.
+
 * valid() 验证连接，被动接口处于加密模式时必须调用
 * 
 * getRev() 获取微信服务器发来信息(不返回结果)，被动接口必须调用
@@ -151,6 +175,9 @@ const EVENT_CARD_USER_DEL = 'user_del_card';        //卡券 - 用户删除卡�
 ```
 
 ### 主动接口方法:   
+
+以下接口除了oAuth授权相关的接口, 其它接口均支持微信之门平台. 对于oAuth授权, 请直接使用 wgate-php-sdk 中的授权方法.
+
  *  checkAuth($appid,$appsecret,$token) 此处传入公众后台高级接口提供的appid和appsecret, 或者手动指定$token为access_token。函数将返回access_token操作令牌
  *  resetAuth($appid='') 删除验证数据
  *  resetJsTicket($appid='') 删除JSAPI授权TICKET
@@ -189,11 +216,11 @@ const EVENT_CARD_USER_DEL = 'user_del_card';        //卡券 - 用户删除卡�
  *  updateGroupMembers($groupid,$openid) 移动用户分组  
  *  batchUpdateGroupMembers($groupid,$openid_list) 批量移动用户分组 
  *  sendCustomMessage($data) 发送客服消息  
- *  getOauthRedirect($callback,$state,$scope) 获取网页授权oAuth跳转地址  
- *  getOauthAccessToken() 通过回调的code获取网页授权access_token  
- *  getOauthRefreshToken($refresh_token) 通过refresh_token对access_token续期  
- *  getOauthUserinfo($access_token,$openid) 通过网页授权的access_token获取用户资料  
- *  getOauthAuth($access_token,$openid)  检验授权凭证access_token是否有效
+ *  getOauthRedirect($callback,$state,$scope) 获取网页授权oAuth跳转地址  // 不支持wgate
+ *  getOauthAccessToken() 通过回调的code获取网页授权access_token  // 不支持wgate
+ *  getOauthRefreshToken($refresh_token) 通过refresh_token对access_token续期  // 不支持wgate
+ *  getOauthUserinfo($access_token,$openid) 通过网页授权的access_token获取用户资料  // 不支持wgate
+ *  getOauthAuth($access_token,$openid)  检验授权凭证access_token是否有效 // 不支持wgate
  *  getSignature($arrdata,'sha1') 生成签名字串  
  *  generateNonceStr($length=16) 获取随机字串  
  *  setTMIndustry($id1,$id2='') 模板消息，设置所属行业
@@ -277,76 +304,8 @@ const EVENT_CARD_USER_DEL = 'user_del_card';        //卡券 - 用户删除卡�
  *  deviceShakeAroundStatistics($device_id,$begin_date,$end_date,$uuid='',$major=0,$minor=0) 以设备为维度的数据统计接口
  *  pageShakeAroundStatistics($page_id,$begin_date,$end_date) 以页面为维度的数据统计接口
  
-## ~~2. wechatext.class.php 非官方扩展API~~  
-**此扩展类库已经不再更新，原因是官方对公众号开放了众多接口，此类库继续维护的意义不大**  
-非官方扩展API，需要配置公众平台账户和密码，能实现对已关注用户的点对点微信，此方式不保证长期有效。  
-类方法里提及的用户id在接口返回结构里表述为FakeId, 属同一概念, 在下面wechatauth类里则表示为Uin, 用户id对应的微信号必须通过getInfo()方法通过返回数组的Username值获取, 但非关注关系用户资料不能获取.  
-调用下列方法前必须经过login()方法和checkValid()验证方法才能获得调用权限. 有的账户无法通过登陆可能因为要求提供验证码, 可以手动登陆后把获取到的cookie写进程序存放cookie的文件解决.  
-程序使用了经过修改的snoopy兼容式HTTP类方法, 在类似BAE/SAE云服务器上可能不能正常运行, 因为云服务的curl方法是经过重写的, 某些header参数如网站来源参数不被支持.  
 
-### 类主要方法:
- *  send($id,$content) 向某用户id发送微信文字信息 
- *  sendNews($id,$msgid) 发送图文消息, 可通过getNewsList获取$msgid
- *  getUserList($page,$pagesize,$groupid) 获取用户信息
- *  getGroupList($page,$pagesize) 获取群组信息
- *  getNewsList($page,$pagesize) 获取图文信息列表 
- *  uploadFile($filepath,$type) 上传附件,包括图片/音频/视频/缩略图
- *  getFileList($type,$page,$pagesize) 获取素材库文件列表
- *  sendImage($id,$fid) 发送图片消息
- *  sendAudio($id,$fid) 发送音频消息
- *  sendVideo($id,$fid) 发送视频消息 
- *  getInfo($id) 根据id获取用户资料,注: 非关注关系用户资料不能获取  
- *  getNewMsgNum($lastid) 获取从$lastid算起新消息的数目  
- *  getTopMsg() 获取最新一条消息的数据, 此方法获取的消息id可以作为检测新消息的$lastid依据  
- *  getMsg($lastid,$offset=0,$perpage=50,$day=0,$today=0,$star=0) 获取最新的消息列表, 列表将返回消息id, 用户id, 消息类型, 文字消息等参数  
- *  消息返回结构:  {"id":"消息id","type":"类型号(1为文字,2为图片,3为语音)","fileId":"0","hasReply":"0","fakeId":"用户uid","nickName":"昵称","dateTime":"时间戳","content":"文字内容"}   
- *  getMsgImage($msgid,$mode='large') 若消息type类型为2, 调用此方法获取图片数据  
- *  getMsgVoice($msgid) 若消息type类型为3, 调用此方法获取语音数据  
-
-## ~~3. wechatauth.class.php 授权登陆~~
-**此扩展类库已经不再更新，原因是官方开放平台对网站应用开放的有授权登陆接口，更标准，更好用。请查看：[微信开放平台](http://open.weixin.qq.com)**  
-通过微信二维码登陆微信的API, 能实现第三方网站同步登陆, 首先程序分别通过get_login_code和get_code_image方法获取授权二维码图片, 然后利用微信手机客户端扫描二维码图片后将自动跳出授权页面, 用户点击授权后即可获取对应的用户资料和头像信息. 详细验证步骤请看test3.php例子.   
-### 类主要方法:
- *  get_login_code() 获取登陆授权码, 通过授权码才能获取二维码  
- *  get_code_image($code='') 将上面获取的授权码转换为图片二维码  
- *  verify_code() 鉴定是否登陆成功,返回200为最终授权成功.  
- *  get_login_info() 鉴定成功后调用此方法即可获取用户基本信息  
- *  get_avatar($url) 获取用户头像图片数据  
- *  logout() 注销登陆  
-
-## ~~4. wechat.js 内嵌JS~~
-**此JS脚本已经废弃不再更新，原因是官方在微信6.0.2版本开放了全新的JSAPI接口，更全面好用。请查看：[微信公众平台WIKI](http://mp.weixin.qq.com/wiki)**
-### 微信内嵌网页特殊功能js调用：
- * WeixinJS.hideOptionMenu() 隐藏右上角按钮
- * WeixinJS.showOptionMenu() 显示右上角按钮
- * WeixinJS.hideToolbar() 隐藏工具栏
- * WeixinJS.showToolbar() 显示工具栏
- * WeixinJS.getNetworkType() 获取网络状态
- * WeixinJS.closeWindow() 关闭窗口
- * WeixinJS.scanQRCode() 扫描二维码
- * WeixinJS.openUrlByExtBrowser(url) 使用浏览器打开网址
- * WeixinJS.jumpToBizProfile(username) 跳转到指定公众账号页面
- * WeixinJS.sendEmail(title,content) 发送邮件
- * WeixinJS.openProductView(latitude,longitude,name,address,scale,infoUrl) 查看地图
- * WeixinJS.addContact(username) 添加微信账号
- * WeixinJS.imagePreview(urls,current) 调出微信内图片预览
- * WeixinJS.payCallback(appId,package,timeStamp,nonceStr,signType,paySign,callback) 微信JsApi支付接口
- * WeixinJS.editAddress(appId,addrSign,timeStamp,nonceStr,callback) 微信JsApi支付接口
- * 通过定义全局变量dataForWeixin配置触发分享的内容：
- ```javascript
- var dataForWeixin={
-	   appId:"",
-	   MsgImg:"消息图片路径",
-	   TLImg:"时间线图路径",
-	   url:"分享url路径",
-	   title:"标题",
-	   desc:"描述",
-	   fakeid:"",
-	   callback:function(){}
-	};
- ```
-
-## 5. errCode.php 全局返回码类
+## 2. errCode.php 全局返回码类
 当调用API接口失败时，可以用此类来获取失败原因的中文说明。  
 注意：微信公众号引用`errCode.php`，企业号引用`qyerrCode.php`。
 
@@ -363,7 +322,7 @@ else
 
 ```
 
-## 6. qywechat.class.php 企业号API类库 
+## 3. qywechat.class.php 企业号API类库 
 调用官方API，具有更灵活的消息分类响应方式，支持链式调用操作 ； 
 
 ### 主要功能 
@@ -498,7 +457,7 @@ $options = array(
 * getOauthRedirect($callback,$state='STATE',$scope='snsapi_base') 组合授权跳转接口url
 
 
-## 7. wechatpay.class.php 旧版微信支付V2接口类库
+## 4. wechatpay.class.php 旧版微信支付V2接口类库
 旧版微信支付类库(微信支付V2)，已移动至old_version目录下。  
 自2014年8月开始申请到的微信支付都是V3接口，据官方说V2的会陆续升级为V3接口，但时间及升级渠道未确认。
 
