@@ -19,6 +19,7 @@ weixin developer SDK.
 使用前需先打开微信帐号的开发模式，详细步骤请查看微信公众平台接口使用说明：  
 微信公众平台： http://mp.weixin.qq.com/wiki/
 微信企业平台： http://qydev.weixin.qq.com/wiki/
+微信之门平台： http://www.weixingate.com
 
 微信支付接入文档：
 https://mp.weixin.qq.com/cgi-bin/readtemplate?t=business/course2_tmpl&lang=zh_CN
@@ -177,6 +178,8 @@ const EVENT_CARD_USER_DEL = 'user_del_card';        //卡券 - 用户删除卡�
 ### 主动接口方法:   
 
 以下接口除了oAuth授权相关的接口, 其它接口均支持微信之门平台. 对于oAuth授权, 请直接使用 wgate-php-sdk 中的授权方法.
+
+在使用 wgate时, 以下所有需要使用access_token调用的方法, 均加入了access_token过期自动检测的功能: 如果使用access_token调用微信接口时, 返回关于 token 无法使用的错误, 会自动从微信之门获取access_token并重新调用接口, 该动作会重试5次.
 
  *  checkAuth($appid,$appsecret,$token) 此处传入公众后台高级接口提供的appid和appsecret, 或者手动指定$token为access_token。函数将返回access_token操作令牌
  *  resetAuth($appid='') 删除验证数据
@@ -613,6 +616,45 @@ switch($type) {
 			$weObj->text("help info")->reply();
 }
 ```
+## 微信之门方式调用示例:
+```php
+  include "wgate.class.php";
+  include "wechat.class.php";
+  $options = array(
+    "key"=>$wgate_key, // 微信之门中生成的KEY
+    "secret"=>$wgate_secret, // 相应的secret
+    "appid"=>$appid,  // 公众号的APPID
+    "weixin_account_id"=>$wgate_weixin_account_id // 微信之门中公众号对应的ID
+  );
+  $options = array(
+    	'token'=>'tokenaccesskey', //填写你在微信之门平台中设定的token
+        'encodingaeskey'=>'encodingaeskey', //填写加密用的EncodingAESKey，如接口为明文模式可忽略
+        "wgate"=>$wgate
+	);
+  $wgate = new WGate($options);
+  $weObj = new Wechat($options); // 将wgate对象传递给wechat
+
+  $weObj->valid();//明文或兼容模式可以在接口验证通过后注释此句，但加密模式一定不能注释，否则会验证失败
+  $type = $weObj->getRev()->getRevType();
+  switch($type) {
+    case Wechat::MSGTYPE_TEXT:
+        $weObj->text("hello, I'm wechat")->reply();
+        exit;
+        break;
+    case Wechat::MSGTYPE_EVENT:
+        break;
+    case Wechat::MSGTYPE_IMAGE:
+        break;
+    default:
+        $weObj->text("help info")->reply();
+  }
+
+
+  $js_ticket = $weObj->getJsCardTicket(); // 获取JS TICKET
+  $menu = $weObj->getMenu();  // 获取菜单
+  
+```
+
 
 ## 企业号API类库调用示例：
 可参考**test**目录下的**qydemo.php**
